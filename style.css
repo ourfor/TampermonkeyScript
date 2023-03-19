@@ -1,0 +1,25 @@
+@font-face {
+    font-family: AritaHeiti;
+    src: local('AritaHeiti'),url("//static.ourfor.top/fonts/AritaHeiti-Medium.woff2");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: DankMono;
+    font-style: normal;
+    font-variant-ligatures: normal;
+    src: local('DankMono Nerd Font'),url("//static.ourfor.top/fonts/DankMono-Regular.ttf");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: DankMono;
+    font-style: italic;
+    font-variant-ligatures: normal;
+    src: local('DankMono Nerd Font'),url("//static.ourfor.top/fonts/DankMono-italic.ttf");
+    font-weight: 400;
+}
+
+a, p, div, span, li, ul {
+    font-family: DankMono,AritaHeiti,sans-serif;
+}

@@ -48,6 +48,7 @@
                 url.searchParams.delete("end");
                 const link = url.href;
                 console.log(link)
+                GM_log(link)
                 GM_openInTab(`nplayer://${link}`)
             }
         };

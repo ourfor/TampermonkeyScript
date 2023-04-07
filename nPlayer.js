@@ -15,13 +15,15 @@
 (function () {
     'use strict';
     // Your code here...
+    GM_log("nPlayer plugin")
     function getToken() {
         const token =  localStorage.getItem("token");
         return token.substring(1, token.length-1);
     }
 
 
-    const id = GM_registerMenuCommand ("使用nPlayer播放", function(){
+    const id = GM_registerMenuCommand ("使用nPlayer播放", () => {
+        GM_log("open with nPlayer")
         const url = new URL(document.baseURI);
         const videoId = parseInt(url.pathname.substring(url.pathname.lastIndexOf("/")+1));
         const token = getToken();
@@ -52,7 +54,7 @@
                 GM_openInTab(`nplayer://${link}`)
             }
         };
-        console.log(req)
+        GM_log(req)
         GM_xmlhttpRequest(req)
      }, "h");
 })();

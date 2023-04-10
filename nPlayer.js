@@ -7,9 +7,12 @@
 // @author       ourfor
 // @match        *://*/*
 // @require      https://cdn.plyr.io/3.7.8/plyr.js
+// @require      https://code.jquery.com/jquery-3.6.4.min.js
 // @resource plyrStyle     https://cdn.plyr.io/3.7.8/plyr.css
 // @resource nPlayerIcon   https://static.ourfor.top/app/nplayer/nplayer.png
 // @resource plyrIcon      https://static.ourfor.top/app/plyr/plyr.png
+// @resource refreshIcon   https://static.ourfor.top/app/shuaxin.png
+// @resource dragIcon      https://static.ourfor.top/app/Concise.png
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @grant        GM_xmlhttpRequest
@@ -69,6 +72,48 @@
             return result
         }
     };
+
+    function addDrag(element, target) {
+        const sourceElement = $(element);
+        const targetElement = $(target ?? element)
+        let isDragging = false;
+        let startCoords = { x: 0, y: 0 };
+        let dragOffset = { x: 0, y: 0 };
+        const minBottom = $(window).height() - targetElement.height();
+        const maxRight = $(window).width() - targetElement.width();
+
+        // touchstart事件
+        sourceElement.on("touchstart mousedown", function (event) {
+            event.preventDefault();
+            isDragging = true;
+            startCoords.x = event.type === "touchstart" ? event.originalEvent.touches[0].pageX : event.pageX;
+            startCoords.y = event.type === "touchstart" ? event.originalEvent.touches[0].pageY : event.pageY;
+            dragOffset.x = targetElement.offset().left - startCoords.x;
+            dragOffset.y = targetElement.offset().top - startCoords.y;
+        });
+
+        // touchmove事件
+        sourceElement.on("touchmove mousemove", function (event) {
+            event.preventDefault();
+            if (isDragging) {
+                const currentX = event.type === "touchmove" ? event.originalEvent.touches[0].pageX : event.pageX;
+                const currentY = event.type === "touchmove" ? event.originalEvent.touches[0].pageY : event.pageY;
+                let left = currentX + dragOffset.x;
+                let top = currentY + dragOffset.y;
+                targetElement.offset({
+                    left,
+                    top
+                });
+            }
+        });
+
+        // touchend事件
+        sourceElement.on("touchend mouseup", function (event) {
+            event.preventDefault();
+            isDragging = false;
+        });
+    }
+
 
     helper.log("nPlayer plugin")
     function setToken(value) {
@@ -168,6 +213,7 @@
         container.id = "plyr-video-container"
         const video = helper.addElement('video', {}, container)
         video.id = "plyr-video"
+        addDrag(container)
         document.plyrContainer = container;
     }
     function initPlayer() {
@@ -176,13 +222,13 @@
             type: "video",
             captions: { active: true, update: true, language: "zh" },
             sources: [
-              {
-                src: ""
-              }
+                {
+                    src: ""
+                }
             ]
-          };
-          const player = new Plyr("#plyr-video", data);
-          window.plyrPlayer = player
+        };
+        const player = new Plyr("#plyr-video", data);
+        window.plyrPlayer = player
     }
     function playWithPlyr() {
         helper.log("play with plyr");
@@ -191,7 +237,7 @@
             player.source = {
                 type: 'video',
                 sources: [
-                  { src: link },
+                    { src: link },
                 ],
             };
             player.play();
@@ -208,7 +254,7 @@
         })
     }
     helper.addMenu("使用nPlayer播放", playWithNPlayer, "h");
-    const plyrStyle = helper.addElement('link', {type: "text/css"}, document.head);
+    const plyrStyle = helper.addElement('link', { type: "text/css" }, document.head);
     plyrStyle.rel = "stylesheet";
     plyrStyle.href = "https://cdn.plyr.io/3.7.8/plyr.css";
     helper.addStyle(`
@@ -216,8 +262,8 @@
         display: flex;
         position: fixed;
         transform: translate(0, -50%);
-        min-height: 2em;
-        width: 2em;
+        min-height: 2.5em;
+        width: 2.5em;
         background-color: rgba(241, 241, 241, 0.29);
         top: 50%;
         left: 0;
@@ -225,19 +271,23 @@
         flex-direction: column;
         z-index: 9999;
      }
-     #player-menu > img {
+     #player-menu > img, #player-menu > div {
         cursor: pointer;
      }
      #player-menu > img:first-child {
-        margin-top: 0.2em;
+        margin-top: 0.25em;
      } 
      #player-menu > img:last-child {
-        margin-top: 0.2em;
+        margin-top: 0.25em;
      } 
-     #player-nPlayer, #player-plyr {
+     #player-nPlayer, #player-plyr, #player-menu > div {
         width: 100%;
-        margin-top: 0.1em;
-        margin-bottom: 0.1em;
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+     }
+     #player-menu > div {
+        font-size: 2.5em;
+        background-color: transparent;
      }
      #plyr-video-container {
         position: fixed;
@@ -248,22 +298,38 @@
         transform: translate(-50%, -50%);
         z-index: 9999;
      } 
+     #plyr-video {
+        object-fit: fill;
+     }
     `)
     const menuContainer = helper.addElement('div', {}, document.body)
     menuContainer.id = "player-menu";
     const nPlayerItem = helper.addElement('img', {}, menuContainer)
     nPlayerItem.id = "player-nPlayer"
     nPlayerItem.src = GM_getResourceURL("nPlayerIcon")
-    nPlayerItem.onclick = (e) => {
+    $(nPlayerItem).on("click tap", (e) => {
         playWithNPlayer()
-    }
+    });
     const plyrItem = helper.addElement('img', {}, menuContainer)
     plyrItem.id = "player-plyr"
     plyrItem.src = GM_getResourceURL("plyrIcon")
-    plyrItem.onclick = (e) => {
+    $(plyrItem).on("click tap", (e) => {
         addPlayerContainer();
         initPlayer();
         playWithPlyr();
-    }
+    });
+
+    const refreshItem = helper.addElement('img', {}, menuContainer)
+    refreshItem.id = "menu-refresh"
+    refreshItem.src = GM_getResourceURL("refreshIcon")
+    $(refreshItem).on("click tap", (e) => {
+        refreshToken();
+        alert("刷新成功")
+    })
+
+    const dragItem = helper.addElement('img', {}, menuContainer)
+    dragItem.id = "menu-drag"
+    dragItem.src = GM_getResourceURL("dragIcon")
+    addDrag(dragItem, menuContainer)
 })();
 

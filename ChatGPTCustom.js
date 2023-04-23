@@ -12,4 +12,4 @@ if ($response.status == 200) {
     $done({})
 }
 
-// http-response ^https:\/\/chat\.openai\.com\/api script-path=https://raw.githubusercontent.com/ourfor/TampermonkeyScript/master/ChatGPTCustom.js, requires-body=true, timeout=10,tag=💄 ChatGPT个性化
+// 💄 ChatGPT个性化 = type=http-response, pattern=^https:\/\/chat\.openai\.com\/api, script-path=https://raw.githubusercontent.com/ourfor/TampermonkeyScript/master/ChatGPTCustom.js, requires-body=true, timeout=10, enable=true

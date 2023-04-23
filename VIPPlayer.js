@@ -15,4 +15,4 @@ if ($response.status == 200) {
     $done({})
 }
 
-// http-response ^https:\/\/.* script-path=https://raw.githubusercontent.com/ourfor/TampermonkeyScript/master/VIPPlayer.js, requires-body=true, timeout=10,tag=📺 VIP视频播放
+// 📺 VIP视频播放 = type=http-response, pattern=^https:\/\/.*, script-path=https://raw.githubusercontent.com/ourfor/TampermonkeyScript/master/VIPPlayer.js, requires-body=true, timeout=10, enable=true

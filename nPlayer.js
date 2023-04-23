@@ -234,8 +234,16 @@
         helper.log("play with plyr");
         realMediaSource((link) => {
             const player = window.plyrPlayer;
+            const title = document.querySelector(".title .hide").innerText;
+            document.title = title;
+            const videoElement = document.querySelector("video");
+            if (videoElement) {
+                videoElement.title = title;
+            }
+            player.media.title = title;
             player.source = {
                 type: 'video',
+                title,
                 sources: [
                     { src: link },
                 ],

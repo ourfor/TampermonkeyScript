@@ -5,7 +5,7 @@ if ($response.status == 200) {
         $done({ status: $response.status, headers: $response.headers, body: JSON.stringify(data) })
     } else if ($request.url.indexOf('videos/getPreUrl') != -1) {
         const data = JSON.parse($response.body);
-        const url = data.data.url.replace("start", "xstart").replace("end", "xend");
+        const url = data.data.url.replace(/start=\d+&?/, "").replace(/end=\d+&?/, "");
         data.data.url = url;
         $done({ status: $response.status, headers: $response.headers, body: JSON.stringify(data) })
     } else {

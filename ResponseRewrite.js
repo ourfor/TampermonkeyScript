@@ -6,13 +6,6 @@
 // @description  重写响应
 // @author       ourfor
 // @match        *://*/*
-// @require      https://cdn.plyr.io/3.7.8/plyr.js
-// @require      https://code.jquery.com/jquery-3.6.4.min.js
-// @resource plyrStyle     https://cdn.plyr.io/3.7.8/plyr.css
-// @resource nPlayerIcon   https://static.ourfor.top/app/nplayer/nplayer.png
-// @resource plyrIcon      https://static.ourfor.top/app/plyr/plyr.png
-// @resource refreshIcon   https://static.ourfor.top/app/shuaxin.png
-// @resource dragIcon      https://static.ourfor.top/app/Concise.png
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @grant        GM_xmlhttpRequest
@@ -27,19 +20,27 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const log = console;
+    const helper = {
+        log: (...args) => {
+            GM_log(...args);
+            console.log(...args);
+        },
+        fetch: (...args) => {
+            GM_xmlhttpRequest(...args);
+        }
+    }
     const originalFetch = fetch;
     window.originalFetch = originalFetch;
     window.fetch = async function (url, options) {
-        log.info(`Fetch request: ${url}`);
+        helper.log(`Fetch request: ${url}`);
         const response = await originalFetch(url, options);
-        log.info(`Fetch response: ${response.status} ${response.statusText}`);
+        helper.log(`Fetch response: ${response.status} ${response.statusText}`);
         const isJSON = response.headers.get('content-type').includes('application/json');
         const isUrlMatch = url.endsWith("check");
         if (isJSON && isUrlMatch) {
             const data = await response.json();
             data["account_plan"]["is_paid_subscription_active"] = true;
-            log.info(data)
+            helper.log(data)
             const newData = JSON.stringify(data);
             const newResponse = new Response(newData, response);
             return newResponse;
@@ -51,7 +52,7 @@
     XMLHttpRequest.prototype.open = function (_, url) {
         const target = this;
         if (url.indexOf("videos/getInfo") != -1) {
-            log.info(url)
+            helper.log(url)
             const keys = ["response", "responseText"];
             keys.forEach(key => {
                 const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, key).get;
@@ -65,7 +66,7 @@
                 });
             })
         } else if (url.indexOf("videos/getPreUrl") != -1) {
-            log.info(url)
+            helper.log(url)
             const keys = ["response", "responseText"];
             keys.forEach(key => {
                 const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, key).get;
@@ -83,8 +84,8 @@
                                 name: info.name,
                                 url
                             }
-                            log.info(item)
-                            GM_xmlhttpRequest({
+                            helper.log(item)
+                            helper.fetch({
                                 method: "POST",
                                 url: "https://api.endeny.me/godbox/m3u8/info",
                                 data: JSON.stringify(item),
@@ -98,13 +99,6 @@
                                     console.error("Error:", response);
                                 }
                             });
-                            // fetch("https://api.endeny.me/godbox/m3u8/info", {
-                            //     method: "POST",
-                            //     body: JSON.stringify(item),
-                            //     headers: {
-                            //         'Content-Type': 'application/json'
-                            //     },
-                            // })
                         }
                         result = JSON.stringify(data);
                         return result;

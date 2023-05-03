@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         重写响应
+// @author       仲夏夜之梦
 // @namespace    https://stay.app/
 // @version      0.1
-// @icon         https://static.ourfor.top/app/nplayer/nplayer.png
+// @icon         https://static.ourfor.top/app/moshu.png
+// @updateURL    https://raw.githubusercontent.com/ourfor/TampermonkeyScript/main/ResponseRewrite.js
 // @description  重写响应
 // @author       ourfor
 // @match        *://*/*
@@ -27,23 +29,94 @@
         },
         fetch: (...args) => {
             GM_xmlhttpRequest(...args);
+        },
+        read: (key, default_value) => {
+            return GM_getValue(key, default_value)
+        },
+        write: (key, value) => {
+            GM_setValue(key, value)
         }
     }
+
+    const rewrites = [
+        {
+            pattern: /api\/auth\/session/,
+            handle: (text) => {
+                const data = JSON.parse(text);
+                data.user.name = "风暴降生龙之母";
+                data.user.email = "god@mail.com";
+                return JSON.stringify(text);
+            }
+        },
+        {
+            pattern: /backend-api\/accounts\/check/,
+            handle: (text) => {
+                const data = JSON.parse(text);
+                data.account_plan.is_paid_subscription_active = true;
+                data.account_plan.was_paid_customer = true;
+                helper.log(data)
+                return JSON.stringify(data)
+            }
+        },
+        {
+            pattern: /videos\/getInfo/,
+            handle: (text) => {
+                const data = JSON.parse(text);
+                helper.write(data.data.info.id, JSON.stringify(data.data.info));
+                return text;
+            }
+        },
+        {
+            pattern: /videos\/getPreUrl/,
+            handle: (text) => {
+                const data = JSON.parse(text);
+                const url = data.data.url.replace(/start=\d+&?/, "").replace(/end=\d+&?/, "");
+                data.data.url = url;
+                let info = helper.read(data.data.id, null)
+                if (info) {
+                    info = JSON.parse(info)
+                    const item = {
+                        vid: `fi11-${info.id}`,
+                        name: info.name,
+                        url
+                    }
+                    helper.fetch({
+                        method: "POST",
+                        url: "https://api.endeny.me/godbox/m3u8/info",
+                        data: JSON.stringify(item),
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        onload: function (response) {
+                            helper.log("[REWRITE] Response data");
+                            helper.log(JSON.parse(response.responseText));
+                        },
+                        onerror: function (response) {
+                            helper.log("[REWRITE] Error");
+                            helper.log(response.responseText);
+                        }
+                    });
+                }
+                text = JSON.stringify(data);
+                return text;
+            }
+        }
+    ]
+
     const originalFetch = fetch;
     window.originalFetch = originalFetch;
     window.fetch = async function (url, options) {
-        helper.log(`Fetch request: ${url}`);
         const response = await originalFetch(url, options);
-        helper.log(`Fetch response: ${response.status} ${response.statusText}`);
         const isJSON = response.headers.get('content-type').includes('application/json');
-        const isUrlMatch = url.endsWith("check");
-        if (isJSON && isUrlMatch) {
-            const data = await response.json();
-            data["account_plan"]["is_paid_subscription_active"] = true;
-            helper.log(data)
-            const newData = JSON.stringify(data);
-            const newResponse = new Response(newData, response);
-            return newResponse;
+        if (isJSON) {
+            for (const { pattern, handle } of rewrites) {
+                if (pattern.test(url)) {
+                    helper.log(`[REWRITE] ${url}`);
+                    const data = await response.text();
+                    const newData = handle(data) ?? data; 
+                    return new Response(newData, response);
+                }
+            }
         }
         return response;
     }
@@ -51,60 +124,21 @@
     const originalOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (_, url) {
         const target = this;
-        if (url.indexOf("videos/getInfo") != -1) {
-            helper.log(url)
-            const keys = ["response", "responseText"];
-            keys.forEach(key => {
-                const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, key).get;
-                Object.defineProperty(target, key, {
-                    get: () => {
-                        let result = getter.call(target);
-                        const data = JSON.parse(result);
-                        localStorage.setItem(data.data.info.id, JSON.stringify(data.data.info))
-                        return result;
-                    }
-                });
-            })
-        } else if (url.indexOf("videos/getPreUrl") != -1) {
-            helper.log(url)
-            const keys = ["response", "responseText"];
-            keys.forEach(key => {
-                const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, key).get;
-                Object.defineProperty(target, key, {
-                    get: () => {
-                        let result = getter.call(target);
-                        const data = JSON.parse(result);
-                        const url = data.data.url.replace(/start=\d+&?/, "").replace(/end=\d+&?/, "");
-                        data.data.url = url;
-                        let info = localStorage.getItem(data.data.id)
-                        if (info) {
-                            info = JSON.parse(info)
-                            const item = {
-                                vid: `fi11-${info.id}`,
-                                name: info.name,
-                                url
-                            }
-                            helper.log(item)
-                            helper.fetch({
-                                method: "POST",
-                                url: "https://api.endeny.me/godbox/m3u8/info",
-                                data: JSON.stringify(item),
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                onload: function(response) {
-                                    console.log("Response data:", response.responseText);
-                                },
-                                onerror: function(response) {
-                                    console.error("Error:", response);
-                                }
-                            });
+        for (const { pattern, handle } of rewrites) {
+            if (pattern.test(url)) {
+                helper.log(`[REWRITE] ${url}`);
+                const keys = ["response", "responseText"];
+                keys.forEach(key => {
+                    const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, key).get;
+                    Object.defineProperty(target, key, {
+                        get: () => {
+                            const result = getter.call(target);
+                            return handle(result) ?? result;
                         }
-                        result = JSON.stringify(data);
-                        return result;
-                    }
-                });
-            })
+                    });
+                })
+                break;
+            }
         }
         return originalOpen.apply(target, arguments);
     }

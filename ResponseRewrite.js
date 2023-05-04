@@ -16,6 +16,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_addStyle
+// @grant        GM_log
 // @grant        GM_getResourceURL
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
@@ -35,6 +36,41 @@
         },
         write: (key, value) => {
             GM_setValue(key, value)
+        }
+    }
+
+    function makeTrackModel(url="/", method="GET", type="xhr") {
+        if (/api\.endeny\.me/.test(url)) return;
+        try {
+            const newURL = new URL(url);
+            const data = {
+                name: document.title,
+                host: newURL.host,
+                path: newURL.pathname,
+                method,
+                timestamp: Date.now(),
+                type,
+                extra: newURL.href
+            }
+            helper.log(data)
+            helper.fetch({
+                method: "POST",
+                url: "https://api.endeny.me/godbox/track",
+                data: JSON.stringify(data),
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    helper.log("[REWRITE] Response data");
+                    helper.log(JSON.parse(response.responseText));
+                },
+                onerror: function (response) {
+                    helper.log("[REWRITE] Error");
+                    helper.log(response.responseText);
+                }
+            });
+        } catch (error) {
+            helper.log(error)
         }
     }
 
@@ -108,12 +144,13 @@
     window.fetch = async function (url, options) {
         const response = await originalFetch(url, options);
         const isJSON = response.headers.get('content-type').includes('application/json');
+        makeTrackModel(url, options.method, "fetch");
         if (isJSON) {
             for (const { pattern, handle } of rewrites) {
                 if (pattern.test(url)) {
                     helper.log(`[REWRITE] ${url}`);
                     const data = await response.text();
-                    const newData = handle(data) ?? data; 
+                    const newData = handle(data) ?? data;
                     return new Response(newData, response);
                 }
             }
@@ -122,8 +159,9 @@
     }
 
     const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (_, url) {
+    XMLHttpRequest.prototype.open = function (method, url) {
         const target = this;
+        makeTrackModel(url, method, "xhr");
         for (const { pattern, handle } of rewrites) {
             if (pattern.test(url)) {
                 helper.log(`[REWRITE] ${url}`);

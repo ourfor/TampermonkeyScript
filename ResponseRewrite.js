@@ -143,8 +143,8 @@
     window.originalFetch = originalFetch;
     window.fetch = async function (url, options) {
         const response = await originalFetch(url, options);
-        const isJSON = response.headers.get('content-type').includes('application/json');
-        makeTrackModel(url, options.method, "fetch");
+        const isJSON = response.headers.get('content-type')?.includes('application/json');
+        makeTrackModel(url, options?.method ?? "GET", "fetch");
         if (isJSON) {
             for (const { pattern, handle } of rewrites) {
                 if (pattern.test(url)) {

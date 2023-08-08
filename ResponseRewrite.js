@@ -2,8 +2,8 @@
 // @name         重写响应
 // @author       仲夏夜之梦
 // @namespace    https://stay.app/
-// @version      0.1
-// @icon         https://static.ourfor.top/app/moshu.png
+// @version      0.2
+// @icon         https://raw.githubusercontent.com/ourfor/TampermonkeyScript/main/icon/rewrite.png
 // @updateURL    https://raw.githubusercontent.com/ourfor/TampermonkeyScript/main/ResponseRewrite.js
 // @description  重写响应
 // @author       ourfor

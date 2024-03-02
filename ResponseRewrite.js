@@ -2,7 +2,7 @@
 // @name         重写响应
 // @author       仲夏夜之梦
 // @namespace    https://stay.app/
-// @version      0.2
+// @version      0.3
 // @icon         https://raw.githubusercontent.com/ourfor/TampermonkeyScript/main/icon/rewrite.png
 // @updateURL    https://raw.githubusercontent.com/ourfor/TampermonkeyScript/main/ResponseRewrite.js
 // @description  重写响应

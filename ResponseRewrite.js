@@ -28,6 +28,10 @@
             GM_log(...args);
             console.log(...args);
         },
+        info: (...args) => {
+            GM_log(...args);
+            console.log(...args);
+        },
         fetch: (...args) => {
             GM_xmlhttpRequest(...args);
         },
@@ -36,41 +40,27 @@
         },
         write: (key, value) => {
             GM_setValue(key, value)
+        },
+        get: (key) => {
+            localStorage.getItem(key)
+        },
+        set: (key, value) => {
+            localStorage.setItem(key, value)
         }
     }
 
-    function makeTrackModel(url="/", method="GET", type="xhr") {
-        if (/api\.endeny\.me/.test(url)) return;
-        try {
-            const newURL = new URL(url);
-            const data = {
-                name: document.title,
-                host: newURL.host,
-                path: newURL.pathname,
-                method,
-                timestamp: Date.now(),
-                type,
-                extra: newURL.href
-            }
-            helper.log(data)
-            helper.fetch({
-                method: "POST",
-                url: "https://api.endeny.me/godbox/track",
-                data: JSON.stringify(data),
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
-                    helper.log("[REWRITE] Response data");
-                    helper.log(JSON.parse(response.responseText));
-                },
-                onerror: function (response) {
-                    helper.log("[REWRITE] Error");
-                    helper.log(response.responseText);
-                }
-            });
-        } catch (error) {
-            helper.log(error)
+    function makeVideoModel(url) {
+        const $ = document.querySelector.bind(document)
+        const poster = $(".player .bg-overlay .el-image .el-image__inner").src
+        const title = $(".article-title").innerText
+        const releaseDate = $(".player>div>.flex>div>span:nth-child(2)").innerText
+        const tags = $(".player>div>.flex>div:nth-child(3)").innerText.split("\n")
+        return {
+            url,
+            poster,
+            title,
+            releaseDate,
+            tags
         }
     }
 
@@ -98,8 +88,10 @@
             pattern: /videos\/getInfo/,
             handle: (text) => {
                 const data = JSON.parse(text);
+                data.data.canPrePlay = true;
+                data.data.canPlay = false;
                 helper.write(data.data.info.id, JSON.stringify(data.data.info));
-                return text;
+                return JSON.stringify(data);
             }
         },
         {
@@ -111,21 +103,29 @@
                 let info = helper.read(data.data.id, null)
                 if (info) {
                     info = JSON.parse(info)
+                    const model = makeVideoModel(url)
                     const item = {
-                        vid: `fi11-${info.id}`,
-                        name: info.name,
-                        url
+                        name: `fi11-${info.id}`,
+                        data: {
+                            title: info.title,
+                            info,
+                            ...model,
+                        },
+                        downloaded: false
                     }
+                    helper.log(item)
                     helper.fetch({
                         method: "POST",
-                        url: "https://api.endeny.me/godbox/m3u8/info",
+                        url: "http://localhost:8000/api/media",
                         data: JSON.stringify(item),
                         headers: {
                             "Content-Type": "application/json"
                         },
                         onload: function (response) {
                             helper.log("[REWRITE] Response data");
-                            helper.log(JSON.parse(response.responseText));
+                            const isJSON = response.responseHeaders.includes('application/json');
+                            const data = isJSON ? JSON.parse(response.responseText) : response.responseText;
+                            helper.log(data);
                         },
                         onerror: function (response) {
                             helper.log("[REWRITE] Error");
@@ -144,7 +144,6 @@
     window.fetch = async function (url, options) {
         const response = await originalFetch(url, options);
         const isJSON = response.headers.get('content-type')?.includes('application/json');
-        makeTrackModel(url, options?.method ?? "GET", "fetch");
         if (isJSON) {
             for (const { pattern, handle } of rewrites) {
                 if (pattern.test(url)) {
@@ -161,7 +160,6 @@
     const originalOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url) {
         const target = this;
-        makeTrackModel(url, method, "xhr");
         for (const { pattern, handle } of rewrites) {
             if (pattern.test(url)) {
                 helper.log(`[REWRITE] ${url}`);
@@ -180,4 +178,12 @@
         }
         return originalOpen.apply(target, arguments);
     }
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = (k, v) => {
+        if (k === "preInfo" || k === "visitorInfo") {
+            helper.log(`[LOCALSTORAGE] ${k}=${v}`);
+            v = v.replace(/"count":"\d+"/, '"count":"0"').replace(/"preNum":"\d+"/, '"preNum":"99999"').replace(/"payStatus":false/, '"payStatus":true');
+        }
+        return originalSetItem.call(localStorage, k, v);
+    };
 })();

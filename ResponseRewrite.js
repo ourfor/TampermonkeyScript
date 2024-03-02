@@ -116,7 +116,7 @@
                     helper.log(item)
                     helper.fetch({
                         method: "POST",
-                        url: "http://localhost:8000/api/media",
+                        url: "https://api.endemy.me/api/media",
                         data: JSON.stringify(item),
                         headers: {
                             "Content-Type": "application/json"

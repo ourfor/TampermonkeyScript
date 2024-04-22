@@ -51,10 +51,10 @@
 
     function makeVideoModel(url) {
         const $ = document.querySelector.bind(document)
-        const poster = $(".player .bg-overlay .el-image .el-image__inner").src
-        const title = $(".article-title").innerText
-        const releaseDate = $(".player>div>.flex>div>span:nth-child(2)").innerText
-        const tags = $(".player>div>.flex>div:nth-child(3)").innerText.split("\n")
+        const poster = $(".player .bg-overlay .el-image .el-image__inner")?.src ?? $(".van-image > img").dataset["src"]
+        const title = $(".article-title")?.innerText
+        const releaseDate = $(".player>div>.flex>div>span:nth-child(2)")?.innerText
+        const tags = $(".player>div>.flex>div:nth-child(3)")?.innerText.split("\n")
         return {
             url,
             poster,
@@ -182,7 +182,7 @@
     localStorage.setItem = (k, v) => {
         if (k === "preInfo" || k === "visitorInfo") {
             helper.log(`[LOCALSTORAGE] ${k}=${v}`);
-            v = v.replace(/"count":"\d+"/, '"count":"0"').replace(/"preNum":"\d+"/, '"preNum":"99999"').replace(/"payStatus":false/, '"payStatus":true');
+            v = v.replace(/"count":"\d+"/, '"count":"0"').replace(/"preNum":"\d+"/, '"preNum":"99999"').replace(/"payStatus":false/, '"payStatus":false');
         }
         return originalSetItem.call(localStorage, k, v);
     };
